@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VP CTRL — Wireframe</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg-base:#111214; --bg-panel:#1a1c20; --bg-card:#22252b; --bg-input:#2a2d35;
+  --border:#2e3138; --border-light:#3a3f4a;
+  --text-primary:#e8eaf0; --text-secondary:#8a8f9c; --text-muted:#55596a;
+  --accent:#4d8ef0; --accent-hover:#6aa0f5;
+  --tally-on:#e63946; --tally-off:#2a2d35;
+  --green:#2ecc71; --yellow:#f39c12; --red:#e63946;
+  --nav-w:176px; --monitor-w:230px; --statusbar-h:42px;
+  --font:'Segoe UI',system-ui,sans-serif;
+}
+body { background:var(--bg-base); color:var(--text-primary); font-family:var(--font); font-size:13px; height:100vh; overflow:hidden; display:flex; flex-direction:column; padding-top:32px; }
+
+/* ── DEMO BAR ── */
+.demo-bar { position:fixed; top:0; left:0; right:0; background:rgba(17,18,20,.97); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:6px; padding:5px 16px; font-size:11px; color:var(--text-muted); z-index:999; }
+.demo-bar button { background:var(--bg-card); border:1px solid var(--border); border-radius:4px; color:var(--text-secondary); padding:3px 10px; font-size:11px; cursor:pointer; font-family:var(--font); }
+.demo-bar button:hover { border-color:var(--accent); color:var(--text-primary); }
+.dsep { color:var(--border-light); }
+
+/* ── CONEXÃO ── */
+#screen-connect { position:fixed; inset:0; background:var(--bg-base); display:flex; align-items:center; justify-content:center; z-index:100; }
+#screen-connect.hidden { display:none; }
+.connect-box { background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; padding:36px 44px; width:400px; display:flex; flex-direction:column; gap:18px; }
+.logo-text { font-size:26px; font-weight:700; letter-spacing:3px; text-align:center; }
+.logo-sub { font-size:11px; color:var(--text-muted); letter-spacing:1px; text-align:center; margin-top:2px; }
+.hdiv { border:none; border-top:1px solid var(--border); }
+.field-group { display:flex; flex-direction:column; gap:6px; }
+.field-group label { font-size:11px; color:var(--text-secondary); }
+.field-row { display:flex; gap:8px; }
+.field-row input { flex:1; }
+.field-row input.port { width:80px; flex:none; }
+input[type="text"],input[type="number"] { background:var(--bg-input); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); padding:9px 12px; font-size:13px; font-family:var(--font); width:100%; outline:none; transition:border-color .15s; }
+input:focus { border-color:var(--accent); }
+
+.checklist { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:14px 16px; display:flex; flex-direction:column; gap:7px; }
+.chk-title { font-size:10px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:2px; }
+.chk-item { display:flex; align-items:flex-start; gap:8px; font-size:12px; }
+.chk-icon { width:18px; flex-shrink:0; text-align:center; }
+.chk-txt { color:var(--text-secondary); }
+.chk-txt.ok { color:var(--text-primary); }
+.chk-txt.warn { color:var(--yellow); }
+.chk-sub { font-size:11px; color:var(--text-muted); margin-left:26px; margin-top:-4px; }
+.chk-sub a { color:var(--accent); cursor:pointer; }
+
+.proj-detected { display:flex; align-items:center; justify-content:space-between; background:rgba(46,204,113,.08); border:1px solid rgba(46,204,113,.25); border-radius:8px; padding:12px 16px; }
+.proj-detected.hidden { display:none; }
+.proj-name { font-size:14px; font-weight:600; }
+.proj-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+.proj-badge { font-size:10px; background:rgba(46,204,113,.2); color:var(--green); padding:3px 10px; border-radius:10px; font-weight:600; }
+
+.recentes { display:flex; flex-direction:column; gap:4px; }
+.rec-title { font-size:11px; color:var(--text-muted); margin-bottom:2px; }
+.rec-item { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:9px 12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; transition:border-color .15s,background .15s; }
+.rec-item:hover { border-color:var(--accent); background:var(--bg-input); }
+.rec-ip { font-size:13px; }
+.rec-proj { font-size:11px; color:var(--accent); margin-top:2px; }
+.rec-data { font-size:11px; color:var(--text-muted); }
+
+.btn-connect { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:12px; font-size:14px; font-weight:600; letter-spacing:1px; cursor:pointer; width:100%; transition:background .15s; }
+.btn-connect:hover { background:var(--accent-hover); }
+.btn-connect:disabled { background:var(--bg-input); color:var(--text-muted); cursor:default; }
+.conn-footer { text-align:center; font-size:11px; color:var(--text-muted); }
+.conn-footer span { color:var(--green); }
+
+/* ── MAIN ── */
+#screen-main { display:flex; flex-direction:column; height:100%; }
+#screen-main.hidden { display:none; }
+
+.statusbar { height:var(--statusbar-h); background:var(--bg-panel); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 14px; gap:12px; flex-shrink:0; }
+.status-logo { font-size:13px; font-weight:700; letter-spacing:2px; }
+.ssep { color:var(--border-light); }
+.status-conn { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); }
+.sdot { width:8px; height:8px; border-radius:50%; background:var(--green); flex-shrink:0; }
+.status-project { display:flex; align-items:center; gap:6px; font-size:12px; background:rgba(77,142,240,.1); border:1px solid rgba(77,142,240,.25); border-radius:4px; padding:3px 10px; }
+.status-project-name { color:var(--accent); font-weight:600; }
+.status-preset { font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:6px; }
+.status-preset span { color:var(--text-secondary); }
+.tally-block { margin-left:auto; background:var(--tally-on); color:#fff; font-size:13px; font-weight:700; letter-spacing:2px; padding:6px 18px; border-radius:5px; display:flex; align-items:center; gap:8px; animation:tally-pulse 1.5s infinite; }
+.tally-block.off { background:var(--tally-off); color:var(--text-muted); animation:none; letter-spacing:1px; }
+@keyframes tally-pulse { 0%,100%{opacity:1} 50%{opacity:.8} }
+.tally-dot { width:10px; height:10px; border-radius:50%; background:#fff; opacity:.9; }
+.tally-block.off .tally-dot { background:var(--text-muted); }
+
+.main-layout { display:flex; flex:1; overflow:hidden; }
+
+/* ── NAV ── */
+.nav-col { width:var(--nav-w); background:var(--bg-panel); border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; overflow-y:auto; }
+.nav-sec { font-size:10px; color:var(--text-muted); letter-spacing:1px; padding:14px 14px 6px; text-transform:uppercase; }
+.nav-item { display:flex; align-items:center; gap:9px; padding:9px 14px; cursor:pointer; border-left:3px solid transparent; color:var(--text-secondary); font-size:13px; transition:all .12s; user-select:none; position:relative; }
+.nav-item:hover { background:var(--bg-card); color:var(--text-primary); }
+.nav-item.active { background:var(--bg-card); border-left-color:var(--accent); color:var(--text-primary); }
+.nav-icon { font-size:14px; width:18px; text-align:center; flex-shrink:0; }
+.nav-label { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Painéis — ícones de ação aparecem no hover */
+.nav-item .nav-actions { display:none; gap:2px; }
+.nav-item:hover .nav-actions { display:flex; }
+.nav-action-btn { background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; padding:2px 4px; border-radius:3px; }
+.nav-action-btn:hover { color:var(--text-primary); background:var(--bg-input); }
+
+.nav-divider { border:none; border-top:1px solid var(--border); margin:6px 0; }
+
+.nav-add-painel { display:flex; align-items:center; gap:9px; padding:8px 14px; cursor:pointer; color:var(--text-muted); font-size:12px; transition:all .12s; border-left:3px solid transparent; }
+.nav-add-painel:hover { color:var(--accent); background:var(--bg-card); }
+
+.nav-presets-block { padding:0 10px 12px; margin-top:auto; border-top:1px solid var(--border); padding-top:10px; }
+.preset-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-top:6px; }
+.preset-btn { background:var(--bg-card); border:1px solid var(--border); border-radius:5px; color:var(--text-secondary); font-size:11px; padding:7px 4px; cursor:pointer; text-align:center; transition:all .12s; }
+.preset-btn:hover { border-color:var(--accent); color:var(--text-primary); }
+.preset-btn.active-preset { border-color:var(--accent); color:var(--accent); }
+
+/* ── CENTRO ── */
+.center-col { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px; }
+.module-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+.module-title { font-size:16px; font-weight:600; }
+.module-subtitle { font-size:11px; color:var(--text-muted); margin-top:2px; }
+.card { background:var(--bg-panel); border:1px solid var(--border); border-radius:8px; padding:16px; }
+.card-title { font-size:11px; color:var(--text-muted); letter-spacing:.8px; text-transform:uppercase; margin-bottom:12px; }
+
+/* SWITCHER */
+.cam-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.cam-btn { background:var(--bg-card); border:2px solid var(--border); border-radius:8px; padding:20px 12px; cursor:pointer; text-align:center; transition:all .15s; display:flex; flex-direction:column; align-items:center; gap:6px; }
+.cam-btn:hover { border-color:var(--accent); }
+.cam-btn.on-air { border-color:var(--tally-on); background:rgba(230,57,70,.1); }
+.cam-label { font-size:18px; font-weight:700; }
+.cam-name { font-size:11px; color:var(--text-muted); }
+.cam-badge { font-size:10px; background:var(--tally-on); color:#fff; padding:2px 8px; border-radius:10px; font-weight:600; letter-spacing:1px; }
+.cam-badge.hidden { visibility:hidden; }
+.blend-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:10px; }
+.field-inline { display:flex; flex-direction:column; gap:5px; }
+.field-inline label { font-size:11px; color:var(--text-muted); }
+select { background:var(--bg-input); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); padding:8px 10px; font-size:13px; font-family:var(--font); outline:none; width:100%; cursor:pointer; }
+
+/* SLIDERS */
+.crop-layout { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.slider-group { display:flex; flex-direction:column; gap:5px; }
+.slider-label-row { display:flex; justify-content:space-between; align-items:center; }
+.slider-label { font-size:11px; color:var(--text-muted); }
+.slider-val { font-size:11px; color:var(--text-primary); font-weight:600; }
+input[type="range"] { -webkit-appearance:none; appearance:none; width:100%; height:4px; background:var(--border-light); border-radius:2px; outline:none; cursor:pointer; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%; background:var(--accent); cursor:pointer; }
+
+/* INPUT VIDEO */
+.source-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:14px; }
+.source-btn { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:10px 6px; cursor:pointer; text-align:center; font-size:12px; color:var(--text-secondary); transition:all .12s; }
+.source-btn:hover { border-color:var(--accent); color:var(--text-primary); }
+.source-btn.active { border-color:var(--accent); color:var(--accent); background:rgba(77,142,240,.08); }
+.source-icon { font-size:18px; margin-bottom:4px; }
+.config-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+
+/* CONTROLES AUTO-DESCOBERTOS */
+.ctrl-group { background:var(--bg-panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.ctrl-group-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; cursor:pointer; user-select:none; transition:background .12s; }
+.ctrl-group-header:hover { background:var(--bg-card); }
+.ctrl-group-name { font-size:13px; font-weight:600; display:flex; align-items:center; gap:8px; }
+.ctrl-group-source { font-size:10px; color:var(--text-muted); background:var(--bg-input); padding:2px 8px; border-radius:10px; }
+.ctrl-group-arrow { color:var(--text-muted); font-size:11px; transition:transform .2s; }
+.ctrl-group-arrow.open { transform:rotate(90deg); }
+.ctrl-group-body { padding:0 16px 14px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:10px; padding-top:14px; }
+.ctrl-group-body.hidden { display:none; }
+
+.ctrl-row { display:flex; align-items:center; gap:10px; }
+.ctrl-name { font-size:12px; color:var(--text-secondary); width:110px; flex-shrink:0; }
+.ctrl-widget { flex:1; }
+.ctrl-toggle { display:flex; gap:0; }
+.toggle-btn { background:var(--bg-input); border:1px solid var(--border); color:var(--text-muted); font-size:12px; padding:6px 14px; cursor:pointer; transition:all .12s; }
+.toggle-btn:first-child { border-radius:5px 0 0 5px; }
+.toggle-btn:last-child { border-radius:0 5px 5px 0; }
+.toggle-btn.on { background:var(--green); border-color:var(--green); color:#fff; }
+.toggle-btn.off-active { background:var(--red); border-color:var(--red); color:#fff; }
+.color-picker-row { display:flex; align-items:center; gap:8px; }
+.color-dot { width:28px; height:28px; border-radius:5px; border:1px solid var(--border); cursor:pointer; flex-shrink:0; }
+.color-val { font-size:11px; color:var(--text-muted); }
+.anim-btn-grid { display:flex; flex-wrap:wrap; gap:6px; }
+.anim-btn { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; color:var(--text-secondary); font-size:12px; padding:7px 12px; cursor:pointer; transition:all .12s; display:flex; align-items:center; gap:5px; }
+.anim-btn:hover { border-color:var(--accent); color:var(--text-primary); }
+.anim-btn.stop { border-color:rgba(230,57,70,.4); color:var(--red); }
+
+/* ── PAINEL PERSONALIZADO ── */
+.painel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+.painel-edit-btn { display:flex; align-items:center; gap:6px; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; color:var(--text-secondary); font-size:12px; padding:6px 14px; cursor:pointer; transition:all .12s; }
+.painel-edit-btn:hover { border-color:var(--accent); color:var(--text-primary); }
+.painel-edit-btn.active { background:rgba(77,142,240,.15); border-color:var(--accent); color:var(--accent); }
+
+.painel-grid { display:grid; gap:12px; }
+.painel-grid.cols-2 { grid-template-columns:1fr 1fr; }
+.painel-grid.cols-3 { grid-template-columns:1fr 1fr 1fr; }
+.painel-block { background:var(--bg-panel); border:1px solid var(--border); border-radius:8px; padding:14px; position:relative; transition:border-color .15s; }
+.painel-block.edit-mode { border-color:var(--border-light); border-style:dashed; }
+.painel-block.edit-mode:hover { border-color:var(--accent); }
+.painel-block-title { font-size:10px; color:var(--text-muted); letter-spacing:.8px; text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between; }
+.block-remove-btn { background:none; border:none; color:var(--text-muted); font-size:14px; cursor:pointer; padding:0 2px; display:none; }
+.edit-mode .block-remove-btn { display:block; }
+.block-remove-btn:hover { color:var(--red); }
+
+/* BOTÕES DE AÇÃO DO PAINEL */
+.painel-cam-row { display:flex; gap:8px; }
+.painel-cam-btn { flex:1; background:var(--bg-card); border:2px solid var(--border); border-radius:6px; padding:12px 8px; cursor:pointer; text-align:center; transition:all .15s; }
+.painel-cam-btn:hover { border-color:var(--accent); }
+.painel-cam-btn.on-air { border-color:var(--tally-on); background:rgba(230,57,70,.1); }
+.painel-cam-label { font-size:15px; font-weight:700; }
+.painel-cam-sub { font-size:10px; color:var(--text-muted); }
+
+/* EDIT MODE — EDIT OVERLAY INDICATOR */
+.edit-mode-bar { background:rgba(77,142,240,.1); border:1px solid rgba(77,142,240,.3); border-radius:8px; padding:10px 16px; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--accent); }
+.edit-mode-bar.hidden { display:none; }
+.edit-save-btn { background:var(--accent); border:none; border-radius:5px; color:#fff; font-size:12px; padding:6px 16px; cursor:pointer; font-family:var(--font); }
+.edit-cancel-btn { background:none; border:1px solid var(--border); border-radius:5px; color:var(--text-secondary); font-size:12px; padding:6px 12px; cursor:pointer; font-family:var(--font); margin-left:8px; }
+
+/* ── MONITOR ── */
+.monitor-col { width:var(--monitor-w); background:var(--bg-panel); border-left:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; overflow:hidden; }
+
+/* NDI PREVIEW */
+.ndi-block { border-bottom:1px solid var(--border); flex-shrink:0; }
+.ndi-hdr { display:flex; align-items:center; justify-content:space-between; padding:8px 14px 6px; }
+.ndi-title { font-size:10px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; }
+.ndi-exp { background:none; border:none; color:var(--text-muted); font-size:12px; cursor:pointer; padding:2px 4px; }
+.ndi-exp:hover { color:var(--text-primary); }
+.ndi-screen { position:relative; width:100%; aspect-ratio:16/9; background:#000; overflow:hidden; }
+.ndi-sim { width:100%; height:100%; background:linear-gradient(135deg,#0a2a4a 0%,#0d3b6e 30%,#1a1a2e 60%,#0a2a4a 100%); position:relative; }
+.ndi-sim::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 30% 40%,rgba(0,200,100,.15) 0%,transparent 60%),radial-gradient(ellipse at 70% 60%,rgba(77,142,240,.1) 0%,transparent 50%); animation:nbg 4s ease-in-out infinite alternate; }
+@keyframes nbg { 0%{opacity:.6} 100%{opacity:1} }
+.ndi-rec { position:absolute; top:6px; left:6px; display:flex; align-items:center; gap:4px; background:rgba(230,57,70,.85); color:#fff; font-size:10px; padding:2px 6px; border-radius:3px; font-weight:700; animation:tally-pulse 1.5s infinite; }
+.ndi-rec-dot { width:6px; height:6px; border-radius:50%; background:#fff; }
+.ndi-fps-badge { position:absolute; top:6px; right:6px; background:rgba(0,0,0,.7); color:var(--green); font-size:10px; padding:2px 6px; border-radius:3px; font-weight:600; }
+.ndi-lbl { position:absolute; bottom:6px; left:6px; background:rgba(0,0,0,.7); color:#fff; font-size:10px; padding:2px 6px; border-radius:3px; }
+
+/* NDI WARNINGS */
+.ndi-warn-block { padding:10px 14px; display:flex; flex-direction:column; gap:8px; }
+.ndi-warn { display:flex; align-items:flex-start; gap:8px; border-radius:6px; padding:8px 10px; }
+.ndi-warn.warn { background:rgba(243,156,18,.08); border:1px solid rgba(243,156,18,.25); }
+.ndi-warn.err { background:rgba(230,57,70,.08); border:1px solid rgba(230,57,70,.25); }
+.ndi-warn-ico { font-size:14px; flex-shrink:0; margin-top:1px; }
+.ndi-warn-txt { font-size:11px; line-height:1.5; }
+.ndi-warn-txt strong { color:var(--text-primary); display:block; margin-bottom:2px; }
+.ndi-warn-txt span { color:var(--text-muted); }
+.ndi-warn-txt a { color:var(--accent); cursor:pointer; }
+
+/* CONTROLS PICKER (edit mode) */
+.picker-col { width:var(--monitor-w); background:var(--bg-panel); border-left:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; overflow:hidden; }
+.picker-col.hidden { display:none; }
+.picker-hdr { padding:12px 14px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.picker-title { font-size:12px; font-weight:600; color:var(--text-primary); margin-bottom:2px; }
+.picker-sub { font-size:11px; color:var(--text-muted); }
+.picker-body { flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:4px; }
+.picker-group-title { font-size:10px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; padding:8px 6px 4px; }
+.picker-item { display:flex; align-items:center; justify-content:space-between; background:var(--bg-card); border:1px solid var(--border); border-radius:6px; padding:8px 10px; cursor:pointer; transition:all .12s; }
+.picker-item:hover { border-color:var(--accent); }
+.picker-item-left { display:flex; flex-direction:column; gap:2px; }
+.picker-item-name { font-size:12px; color:var(--text-primary); }
+.picker-item-type { font-size:10px; color:var(--text-muted); }
+.picker-add-btn { background:rgba(77,142,240,.15); border:1px solid rgba(77,142,240,.3); border-radius:4px; color:var(--accent); font-size:14px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; font-weight:700; }
+.picker-add-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+.picker-item.added { opacity:.4; pointer-events:none; }
+
+.monitor-section { padding:12px 14px; border-bottom:1px solid var(--border); }
+.monitor-title { font-size:10px; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:10px; }
+.metric-row { display:flex; justify-content:space-between; align-items:center; padding:4px 0; }
+.metric-label { font-size:12px; color:var(--text-secondary); }
+.metric-val { font-size:13px; font-weight:600; }
+.metric-val.good { color:var(--green); }
+.metric-val.warn { color:var(--yellow); }
+.bar-wrap { background:var(--bg-input); border-radius:2px; height:3px; margin-top:3px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:2px; background:var(--green); transition:width .3s; }
+.bar-fill.warn { background:var(--yellow); }
+.log-area { flex:1; overflow-y:auto; padding:10px 14px; display:flex; flex-direction:column; gap:5px; }
+.log-item { display:flex; gap:6px; font-size:11px; line-height:1.5; }
+.log-time { color:var(--text-muted); flex-shrink:0; }
+.log-msg { color:var(--text-secondary); }
+.log-msg.ok { color:var(--green); }
+.log-msg.warn { color:var(--yellow); }
+.log-msg.err { color:var(--red); }
+
+/* BOTÕES GERAIS */
+.btn { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); padding:9px 16px; font-size:13px; font-family:var(--font); cursor:pointer; transition:all .12s; }
+.btn:hover { border-color:var(--border-light); background:var(--bg-input); }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn.primary:hover { background:var(--accent-hover); }
+.empty-module { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; gap:10px; color:var(--text-muted); font-size:13px; min-height:200px; }
+.empty-icon { font-size:36px; opacity:.4; }
+
+/* MODAIS */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); display:flex; align-items:center; justify-content:center; z-index:500; }
+.modal-overlay.hidden { display:none; }
+.modal-box { background:var(--bg-panel); border:1px solid var(--border); border-radius:10px; padding:28px 32px; width:420px; display:flex; flex-direction:column; gap:16px; }
+.modal-title { font-size:16px; font-weight:600; }
+.modal-body { font-size:13px; color:var(--text-secondary); line-height:1.7; }
+.modal-proj-change { display:flex; align-items:center; gap:12px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:12px 16px; }
+.modal-btn-row { display:flex; gap:10px; }
+.modal-btn-row .btn { flex:1; text-align:center; }
+
+/* NOVO PAINEL MODAL */
+.modal-input { background:var(--bg-input); border:1px solid var(--border); border-radius:6px; color:var(--text-primary); padding:10px 14px; font-size:14px; font-family:var(--font); width:100%; outline:none; }
+.modal-input:focus { border-color:var(--accent); }
+.icon-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; }
+.icon-opt { background:var(--bg-card); border:1px solid var(--border); border-radius:6px; font-size:18px; padding:8px; text-align:center; cursor:pointer; transition:all .12s; }
+.icon-opt:hover,.icon-opt.selected { border-color:var(--accent); background:rgba(77,142,240,.1); }
+
+/* NDI FULLSCREEN */
+.ndi-fullscreen { position:fixed; inset:0; background:#000; display:flex; flex-direction:column; z-index:300; }
+.ndi-fullscreen.hidden { display:none; }
+.ndi-fs-bar { display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:rgba(0,0,0,.8); border-bottom:1px solid var(--border); }
+.ndi-fs-bar span { font-size:13px; color:var(--text-secondary); }
+.ndi-fs-bar button { background:var(--bg-card); border:1px solid var(--border); color:var(--text-primary); padding:6px 16px; border-radius:6px; cursor:pointer; font-family:var(--font); }
+.ndi-fs-content { flex:1; display:flex; align-items:center; justify-content:center; }
+.ndi-fs-video { width:100%; height:100%; max-width:calc(100vh * 16/9); background:linear-gradient(135deg,#0a2a4a,#0d3b6e,#1a1a2e,#0a2a4a); position:relative; }
+.ndi-fs-rec { position:absolute; top:16px; left:16px; display:flex; align-items:center; gap:6px; background:rgba(230,57,70,.85); color:#fff; font-size:13px; padding:6px 12px; border-radius:4px; font-weight:700; animation:tally-pulse 1.5s infinite; }
+.ndi-fs-fps { position:absolute; top:16px; right:16px; background:rgba(0,0,0,.7); color:var(--green); font-size:14px; padding:6px 12px; border-radius:4px; font-weight:600; }
+.ndi-fs-lbl { position:absolute; bottom:16px; left:16px; background:rgba(0,0,0,.7); color:#fff; font-size:14px; padding:6px 12px; border-radius:4px; }
+
+.wf-note { position:fixed; bottom:12px; right:12px; background:rgba(77,142,240,.15); border:1px solid var(--accent); border-radius:6px; padding:8px 14px; font-size:11px; color:var(--accent); pointer-events:none; z-index:50; }
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border-light); border-radius:2px; }
+</style>
+</head>
+<body>
+
+<!-- ══ DEMO BAR ══ -->
+<div class="demo-bar">
+  <span>WIREFRAME VP CTRL</span><span class="dsep">|</span>
+  <button onclick="showConnect()">Conexão</button>
+  <button onclick="simulateConnect()">Simular Conexão</button>
+  <button onclick="showMain()">Painel Principal</button>
+  <span class="dsep">|</span>
+  <button onclick="toggleTally()">Toggle Tally</button>
+  <button onclick="switchCam()">Trocar Câmera</button>
+  <span class="dsep">|</span>
+  <button onclick="setNdiState('ok')">NDI OK</button>
+  <button onclick="setNdiState('no-plugin')">NDI sem Plugin</button>
+  <button onclick="setNdiState('no-runtime')">NDI sem Runtime</button>
+  <span class="dsep">|</span>
+  <button onclick="showProjectChange()">Troca de Projeto</button>
+  <button onclick="toggleFullscreen()">Preview Full</button>
+</div>
+
+<!-- ══ TELA CONEXÃO ══ -->
+<div id="screen-connect">
+  <div class="connect-box">
+    <div><div class="logo-text">VP CTRL</div><div class="logo-sub">VIRTUAL PRODUCTION CONTROL</div></div>
+    <hr class="hdiv">
+    <div class="field-group">
+      <label>ENDEREÇO DO UE5</label>
+      <div class="field-row">
+        <input type="text" value="192.168.1.10">
+        <input type="text" class="port" value="30010">
+      </div>
+    </div>
+    <div class="checklist" id="checklist" style="display:none">
+      <div class="chk-title">Verificando requisitos</div>
+      <div class="chk-item" id="chk-ue5"><span class="chk-icon">⏳</span><span class="chk-txt">Conectando ao UE5...</span></div>
+      <div class="chk-item" id="chk-proj" style="display:none"><span class="chk-icon">⏳</span><span class="chk-txt">Detectando projeto...</span></div>
+      <div class="chk-item" id="chk-runtime" style="display:none"><span class="chk-icon">⏳</span><span class="chk-txt">NDI Runtime...</span></div>
+      <div class="chk-item" id="chk-plugin" style="display:none"><span class="chk-icon">⏳</span><span class="chk-txt">Plugin NDI no UE5...</span></div>
+    </div>
+    <div class="proj-detected hidden" id="proj-detected-block">
+      <div><div class="proj-name" id="proj-detected-name">ProjetoCasamento</div><div class="proj-sub">Presets carregados para este projeto</div></div>
+      <div class="proj-badge">DETECTADO</div>
+    </div>
+    <div class="recentes" id="recentes-block">
+      <div class="rec-title">RECENTES</div>
+      <div class="rec-item" onclick="simulateConnectWith('192.168.1.10','ProjetoTV_2026')">
+        <div><div class="rec-ip">192.168.1.10 : 30010</div><div class="rec-proj">ProjetoTV_2026</div></div>
+        <div class="rec-data">hoje 14:32</div>
+      </div>
+      <div class="rec-item" onclick="simulateConnectWith('192.168.1.10','ProjetoCasamento')">
+        <div><div class="rec-ip">192.168.1.10 : 30010</div><div class="rec-proj">ProjetoCasamento</div></div>
+        <div class="rec-data">ontem 09:15</div>
+      </div>
+      <div class="rec-item" onclick="simulateConnectWith('192.168.1.10','ProjetoCorporativo')">
+        <div><div class="rec-ip">192.168.1.10 : 30010</div><div class="rec-proj">ProjetoCorporativo</div></div>
+        <div class="rec-data">10/03 18:00</div>
+      </div>
+    </div>
+    <button class="btn-connect" id="btn-conectar" onclick="simulateConnect()">CONECTAR</button>
+    <div class="conn-footer">Licença: <span>ativa</span> — válida até 2027-03-16 · v1.0.0</div>
+  </div>
+</div>
+
+<!-- ══ PAINEL PRINCIPAL ══ -->
+<div id="screen-main" class="hidden">
+
+  <div class="statusbar">
+    <span class="status-logo">VP CTRL</span>
+    <span class="ssep">|</span>
+    <div class="status-conn"><div class="sdot"></div><span>192.168.1.10:30010</span><span style="color:var(--green);font-size:11px">CONECTADO</span></div>
+    <span class="ssep">|</span>
+    <div class="status-project"><span>📁</span><span class="status-project-name" id="status-proj-name">ProjetoCasamento</span></div>
+    <span class="ssep">|</span>
+    <div class="status-preset">Preset: <span id="active-preset-name">Preset A</span></div>
+    <div class="tally-block" id="tally-block"><div class="tally-dot"></div><span id="tally-text">CAM 1 NO AR</span></div>
+  </div>
+
+  <div class="main-layout">
+
+    <!-- ── NAV ── -->
+    <div class="nav-col">
+      <div class="nav-sec">MÓDULOS</div>
+      <div class="nav-item" onclick="setModule('input')" id="nav-input"><span class="nav-icon">📥</span><span class="nav-label">Input</span></div>
+      <div class="nav-item active" onclick="setModule('chroma')" id="nav-chroma"><span class="nav-icon">🎨</span><span class="nav-label">Chroma</span></div>
+      <div class="nav-item" onclick="setModule('switcher')" id="nav-switcher"><span class="nav-icon">🎬</span><span class="nav-label">Switcher</span></div>
+      <div class="nav-item" onclick="setModule('controles')" id="nav-controles"><span class="nav-icon">🎛️</span><span class="nav-label">Controles</span></div>
+      <div class="nav-item" onclick="setModule('paths')" id="nav-paths"><span class="nav-icon">📍</span><span class="nav-label">Cam Paths</span></div>
+      <div class="nav-item" onclick="setModule('output')" id="nav-output"><span class="nav-icon">📤</span><span class="nav-label">Output</span></div>
+      <div class="nav-item" onclick="setModule('cena')" id="nav-cena"><span class="nav-icon">🏔️</span><span class="nav-label">Cena 3D</span></div>
+      <div class="nav-item" onclick="setModule('audio')" id="nav-audio"><span class="nav-icon">🔊</span><span class="nav-label">Áudio</span></div>
+      <div class="nav-item" onclick="setModule('presets-mod')" id="nav-presets-mod"><span class="nav-icon">💾</span><span class="nav-label">Presets</span></div>
+      <div class="nav-item" onclick="setModule('tally')" id="nav-tally"><span class="nav-icon">🔴</span><span class="nav-label">Tally</span></div>
+
+      <div class="nav-divider"></div>
+      <div class="nav-sec" style="padding-bottom:4px">MEUS PAINÉIS</div>
+
+      <div class="nav-item" onclick="setModule('painel-show')" id="nav-painel-show">
+        <span class="nav-icon">⭐</span><span class="nav-label">Show Ao Vivo</span>
+        <div class="nav-actions">
+          <button class="nav-action-btn" onclick="event.stopPropagation();setModule('painel-show');toggleEditMode()" title="Editar">✏️</button>
+          <button class="nav-action-btn" title="Excluir">🗑</button>
+        </div>
+      </div>
+      <div class="nav-item" onclick="setModule('painel-noturno')" id="nav-painel-noturno">
+        <span class="nav-icon">🌙</span><span class="nav-label">Setup Noturno</span>
+        <div class="nav-actions">
+          <button class="nav-action-btn" onclick="event.stopPropagation();setModule('painel-noturno');toggleEditMode()" title="Editar">✏️</button>
+          <button class="nav-action-btn" title="Excluir">🗑</button>
+        </div>
+      </div>
+      <div class="nav-item" onclick="setModule('painel-ensaio')" id="nav-painel-ensaio">
+        <span class="nav-icon">🔧</span><span class="nav-label">Ensaio</span>
+        <div class="nav-actions">
+          <button class="nav-action-btn" onclick="event.stopPropagation();setModule('painel-ensaio');toggleEditMode()" title="Editar">✏️</button>
+          <button class="nav-action-btn" title="Excluir">🗑</button>
+        </div>
+      </div>
+      <div class="nav-add-painel" onclick="showNewPainelModal()">
+        <span class="nav-icon" style="font-size:16px">＋</span><span>Novo Painel</span>
+      </div>
+
+      <div class="nav-divider"></div>
+      <div class="nav-presets-block">
+        <div class="nav-sec" style="padding:0 0 6px">PRESETS RÁPIDOS</div>
+        <div class="preset-grid">
+          <div class="preset-btn active-preset" onclick="setPreset(this,'Preset A')">A</div>
+          <div class="preset-btn" onclick="setPreset(this,'Preset B')">B</div>
+          <div class="preset-btn" onclick="setPreset(this,'Preset C')">C</div>
+          <div class="preset-btn" onclick="setPreset(this,'Preset D')">D</div>
+          <div class="preset-btn" onclick="setPreset(this,'Preset E')">E</div>
+          <div class="preset-btn" onclick="setPreset(this,'Preset F')">F</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CENTRO ── -->
+    <div class="center-col" id="center-col">
+
+      <!-- CHROMA -->
+      <div id="mod-chroma">
+        <div class="module-header"><div><div class="module-title">Chroma Key / Billboard</div><div class="module-subtitle">VPCtrl_Composure · Delta Keyer · VPCtrl_PlaneB1</div></div></div>
+        <div class="card"><div class="card-title">Key Color</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:44px;height:44px;border-radius:6px;border:1px solid var(--border);background:#00c800;cursor:pointer;flex-shrink:0"></div>
+            <div style="font-size:11px;color:var(--text-muted);line-height:1.8">R: 0.00 &nbsp; G: 0.78 &nbsp; B: 0.00<br>FLinearColor → Delta Keyer</div>
+            <button class="btn" style="margin-left:auto">Alterar Cor</button>
+          </div>
+        </div>
+        <div class="card"><div class="card-title">Crop Assimétrico</div>
+          <div class="crop-layout">
+            <div class="slider-group"><div class="slider-label-row"><span class="slider-label">Topo</span><span class="slider-val">0.00</span></div><input type="range" min="0" max="100" value="0" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=(this.value/100).toFixed(2)"></div>
+            <div class="slider-group"><div class="slider-label-row"><span class="slider-label">Base</span><span class="slider-val">0.00</span></div><input type="range" min="0" max="100" value="0" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=(this.value/100).toFixed(2)"></div>
+            <div class="slider-group"><div class="slider-label-row"><span class="slider-label">Esquerda</span><span class="slider-val">0.00</span></div><input type="range" min="0" max="100" value="0" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=(this.value/100).toFixed(2)"></div>
+            <div class="slider-group"><div class="slider-label-row"><span class="slider-label">Direita</span><span class="slider-val">0.00</span></div><input type="range" min="0" max="100" value="0" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=(this.value/100).toFixed(2)"></div>
+          </div>
+        </div>
+        <div class="card"><div class="card-title">Color Grade</div>
+          <div class="crop-layout">
+            <div class="slider-group"><div class="slider-label-row"><span class="slider-label">Temperatura (K)</span><span class="slider-val">6500</span></div><input type="range" min="2000" max="10000" value="6500" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=this.value"></div>
+            <div class="slider-group"><div class="slider-label-row"><span class="slider-label">Saturação</span><span class="slider-val">1.00</span></div><input type="range" min="0" max="200" value="100" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=(this.value/100).toFixed(2)"></div>
+            <div class="slider-group"><div class="slider-label-row"><span class="slider-label">Exposição (EV)</span><span class="slider-val">0.00</span></div><input type="range" min="-400" max="400" value="0" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=(this.value/100).toFixed(2)"></div>
+            <div class="slider-group"><div class="slider-label-row"><span class="slider-label">Lift Billboard</span><span class="slider-val">0.00</span></div><input type="range" min="-100" max="100" value="0" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=(this.value/100).toFixed(2)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SWITCHER -->
+      <div id="mod-switcher" style="display:none">
+        <div class="module-header"><div><div class="module-title">Switcher de Câmeras</div><div class="module-subtitle">VPCtrl_Cam1 · VPCtrl_Cam2 · VPCtrl_Cam3</div></div></div>
+        <div class="card"><div class="card-title">Câmeras Virtuais</div>
+          <div class="cam-grid">
+            <div class="cam-btn on-air" id="cam-btn-1" onclick="selectCam(1)"><div class="cam-badge" id="badge-1">NO AR</div><div class="cam-label">CAM 1</div><div class="cam-name">VPCtrl_Cam1</div></div>
+            <div class="cam-btn" id="cam-btn-2" onclick="selectCam(2)"><div class="cam-badge hidden" id="badge-2">NO AR</div><div class="cam-label">CAM 2</div><div class="cam-name">VPCtrl_Cam2</div></div>
+            <div class="cam-btn" id="cam-btn-3" onclick="selectCam(3)"><div class="cam-badge hidden" id="badge-3">NO AR</div><div class="cam-label">CAM 3</div><div class="cam-name">VPCtrl_Cam3</div></div>
+          </div>
+          <div class="blend-row">
+            <div class="field-inline"><label>Blend Time (s)</label><input type="number" value="0.5" min="0" max="5" step="0.1"></div>
+            <div class="field-inline"><label>Blend Function</label><select><option>Ease In/Out</option><option>Linear</option><option>Corte Direto</option></select></div>
+            <div class="field-inline"><label>Preview</label><button class="btn" style="width:100%">Testar Blend</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTROLES AUTO-DESCOBERTOS -->
+      <div id="mod-controles" style="display:none">
+        <div class="module-header">
+          <div><div class="module-title">Controles</div><div class="module-subtitle">Propriedades expostas no Remote Control Preset · auto-descobertas</div></div>
+          <button class="btn" onclick="addLog('Preset re-escaneado')">↻ Escanear</button>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-group-header" onclick="toggleGroup(this)">
+            <div class="ctrl-group-name">💡 Painel LED Fundo <span class="ctrl-group-source">LED_PainelActor</span></div>
+            <span class="ctrl-group-arrow open">›</span>
+          </div>
+          <div class="ctrl-group-body">
+            <div class="ctrl-row">
+              <span class="ctrl-name">Intensidade</span>
+              <div class="ctrl-widget"><div class="slider-label-row" style="margin-bottom:4px"><span class="slider-label">float</span><span class="slider-val">0.75</span></div><input type="range" min="0" max="100" value="75" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=(this.value/100).toFixed(2)"></div>
+            </div>
+            <div class="ctrl-row">
+              <span class="ctrl-name">Cor LED</span>
+              <div class="ctrl-widget"><div class="color-picker-row"><div class="color-dot" style="background:#ff8800"></div><span class="color-val">R:1.0 G:0.53 B:0.0</span><button class="btn" style="padding:5px 10px;font-size:11px;margin-left:auto">Alterar</button></div></div>
+            </div>
+            <div class="ctrl-row">
+              <span class="ctrl-name">Padrão</span>
+              <div class="ctrl-widget"><select><option>Sólido</option><option selected>Pulso</option><option>Gradiente</option><option>Scan</option></select></div>
+            </div>
+            <div class="ctrl-row">
+              <span class="ctrl-name">Ativo</span>
+              <div class="ctrl-widget"><div class="ctrl-toggle"><button class="toggle-btn on">ON</button><button class="toggle-btn">OFF</button></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-group-header" onclick="toggleGroup(this)">
+            <div class="ctrl-group-name">🔆 Iluminação Cena <span class="ctrl-group-source">BP_LightControl</span></div>
+            <span class="ctrl-group-arrow open">›</span>
+          </div>
+          <div class="ctrl-group-body">
+            <div class="ctrl-row"><span class="ctrl-name">Luz Principal</span><div class="ctrl-widget"><div class="slider-label-row" style="margin-bottom:4px"><span class="slider-label">float · lux</span><span class="slider-val">2400</span></div><input type="range" min="0" max="5000" value="2400" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=this.value"></div></div>
+            <div class="ctrl-row"><span class="ctrl-name">Temperatura</span><div class="ctrl-widget"><div class="slider-label-row" style="margin-bottom:4px"><span class="slider-label">float · K</span><span class="slider-val">3200</span></div><input type="range" min="2000" max="8000" value="3200" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=this.value"></div></div>
+            <div class="ctrl-row"><span class="ctrl-name">Sombras</span><div class="ctrl-widget"><div class="ctrl-toggle"><button class="toggle-btn on">ON</button><button class="toggle-btn">OFF</button></div></div></div>
+            <div class="ctrl-row"><span class="ctrl-name">Cor Ambiente</span><div class="ctrl-widget"><div class="color-picker-row"><div class="color-dot" style="background:#334466"></div><span class="color-val">R:0.2 G:0.27 B:0.4</span><button class="btn" style="padding:5px 10px;font-size:11px;margin-left:auto">Alterar</button></div></div></div>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-group-header" onclick="toggleGroup(this)">
+            <div class="ctrl-group-name">🎬 Animações <span class="ctrl-group-source">BP_AnimController</span></div>
+            <span class="ctrl-group-arrow open">›</span>
+          </div>
+          <div class="ctrl-group-body">
+            <div class="anim-btn-grid">
+              <button class="anim-btn" onclick="addLog('▶ Entrada Apresentador')">▶ Entrada Apresentador</button>
+              <button class="anim-btn" onclick="addLog('▶ Transição Cena B')">▶ Transição Cena B</button>
+              <button class="anim-btn" onclick="addLog('▶ Vinheta Abertura')">▶ Vinheta Abertura</button>
+              <button class="anim-btn" onclick="addLog('▶ Explosão Partículas')">▶ Explosão Partículas</button>
+              <button class="anim-btn" onclick="addLog('▶ Loop Ambiente')">↺ Loop Ambiente</button>
+              <button class="anim-btn stop" onclick="addLog('⏹ Parar tudo')">⏹ Parar Tudo</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="ctrl-group">
+          <div class="ctrl-group-header" onclick="toggleGroup(this)">
+            <div class="ctrl-group-name">🧱 Material Parede <span class="ctrl-group-source">M_ParedePrincipal</span></div>
+            <span class="ctrl-group-arrow">›</span>
+          </div>
+          <div class="ctrl-group-body hidden">
+            <div class="ctrl-row"><span class="ctrl-name">Roughness</span><div class="ctrl-widget"><div class="slider-label-row" style="margin-bottom:4px"><span class="slider-label">float</span><span class="slider-val">0.50</span></div><input type="range" min="0" max="100" value="50" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=(this.value/100).toFixed(2)"></div></div>
+            <div class="ctrl-row"><span class="ctrl-name">Base Color</span><div class="ctrl-widget"><div class="color-picker-row"><div class="color-dot" style="background:#aaaaaa"></div><span class="color-val">R:0.67 G:0.67 B:0.67</span><button class="btn" style="padding:5px 10px;font-size:11px;margin-left:auto">Alterar</button></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAINEL: SHOW AO VIVO -->
+      <div id="mod-painel-show" style="display:none">
+        <div class="painel-header">
+          <div><div class="module-title">⭐ Show Ao Vivo</div><div class="module-subtitle">Painel personalizado · <span id="painel-show-count">4</span> blocos</div></div>
+          <button class="painel-edit-btn" id="edit-btn-show" onclick="toggleEditMode('show')">✏️ Editar Painel</button>
+        </div>
+        <div class="edit-mode-bar hidden" id="editbar-show">
+          <span>Modo de edição — clique em <b>+</b> no painel lateral para adicionar controles</span>
+          <div><button class="edit-save-btn" onclick="saveEditMode('show')">Salvar</button><button class="edit-cancel-btn" onclick="cancelEditMode('show')">Cancelar</button></div>
+        </div>
+
+        <div class="painel-grid cols-2" id="painel-show-grid">
+          <div class="painel-block" id="pb-cams">
+            <div class="painel-block-title">Câmeras <button class="block-remove-btn" onclick="removeBlock('pb-cams','show')">✕</button></div>
+            <div class="painel-cam-row">
+              <div class="painel-cam-btn on-air" id="pcam-1" onclick="selectCam(1);syncPainelCam(1)"><div class="painel-cam-label">CAM 1</div><div class="painel-cam-sub">no ar</div></div>
+              <div class="painel-cam-btn" id="pcam-2" onclick="selectCam(2);syncPainelCam(2)"><div class="painel-cam-label">CAM 2</div><div class="painel-cam-sub">—</div></div>
+              <div class="painel-cam-btn" id="pcam-3" onclick="selectCam(3);syncPainelCam(3)"><div class="painel-cam-label">CAM 3</div><div class="painel-cam-sub">—</div></div>
+            </div>
+          </div>
+
+          <div class="painel-block" id="pb-led">
+            <div class="painel-block-title">LED Fundo <button class="block-remove-btn" onclick="removeBlock('pb-led','show')">✕</button></div>
+            <div class="slider-group" style="margin-bottom:10px"><div class="slider-label-row"><span class="slider-label">Intensidade</span><span class="slider-val">0.75</span></div><input type="range" min="0" max="100" value="75" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=(this.value/100).toFixed(2)"></div>
+            <div class="color-picker-row"><div class="color-dot" style="background:#ff8800"></div><span class="color-val" style="flex:1">Cor LED</span><button class="btn" style="padding:5px 10px;font-size:11px">Alterar</button></div>
+          </div>
+
+          <div class="painel-block" id="pb-luz">
+            <div class="painel-block-title">Iluminação <button class="block-remove-btn" onclick="removeBlock('pb-luz','show')">✕</button></div>
+            <div class="slider-group" style="margin-bottom:8px"><div class="slider-label-row"><span class="slider-label">Luz Principal</span><span class="slider-val">2400</span></div><input type="range" min="0" max="5000" value="2400" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=this.value"></div>
+            <div class="slider-group"><div class="slider-label-row"><span class="slider-label">Temperatura (K)</span><span class="slider-val">3200</span></div><input type="range" min="2000" max="8000" value="3200" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=this.value"></div>
+          </div>
+
+          <div class="painel-block" id="pb-anim">
+            <div class="painel-block-title">Animações <button class="block-remove-btn" onclick="removeBlock('pb-anim','show')">✕</button></div>
+            <div class="anim-btn-grid">
+              <button class="anim-btn" onclick="addLog('▶ Entrada Apresentador')">▶ Entrada</button>
+              <button class="anim-btn" onclick="addLog('▶ Vinheta')">▶ Vinheta</button>
+              <button class="anim-btn" onclick="addLog('▶ Transição B')">▶ Trans. B</button>
+              <button class="anim-btn stop" onclick="addLog('⏹ Parar')">⏹ Parar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAINEL: SETUP NOTURNO -->
+      <div id="mod-painel-noturno" style="display:none">
+        <div class="painel-header">
+          <div><div class="module-title">🌙 Setup Noturno</div><div class="module-subtitle">Painel personalizado · 2 blocos</div></div>
+          <button class="painel-edit-btn" id="edit-btn-noturno" onclick="toggleEditMode('noturno')">✏️ Editar Painel</button>
+        </div>
+        <div class="edit-mode-bar hidden" id="editbar-noturno">
+          <span>Modo de edição ativo</span>
+          <div><button class="edit-save-btn" onclick="saveEditMode('noturno')">Salvar</button><button class="edit-cancel-btn" onclick="cancelEditMode('noturno')">Cancelar</button></div>
+        </div>
+        <div class="painel-grid cols-2">
+          <div class="painel-block"><div class="painel-block-title">Temperatura Cena</div>
+            <div class="slider-group"><div class="slider-label-row"><span class="slider-label">Temperatura (K)</span><span class="slider-val">2800</span></div><input type="range" min="2000" max="8000" value="2800" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=this.value"></div>
+            <div class="slider-group" style="margin-top:10px"><div class="slider-label-row"><span class="slider-label">Intensidade Geral</span><span class="slider-val">0.40</span></div><input type="range" min="0" max="100" value="40" oninput="this.previousElementSibling.querySelector('.slider-val').textContent=(this.value/100).toFixed(2)"></div>
+          </div>
+          <div class="painel-block"><div class="painel-block-title">LED Noturno</div>
+            <div class="color-picker-row" style="margin-bottom:10px"><div class="color-dot" style="background:#1a3a6a"></div><span class="color-val" style="flex:1">Cor Noturna</span><button class="btn" style="padding:5px 10px;font-size:11px">Alterar</button></div>
+            <div class="ctrl-toggle"><button class="toggle-btn on">ON</button><button class="toggle-btn">OFF</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAINEL: ENSAIO -->
+      <div id="mod-painel-ensaio" style="display:none">
+        <div class="painel-header">
+          <div><div class="module-title">🔧 Ensaio</div><div class="module-subtitle">Painel personalizado · 2 blocos</div></div>
+          <button class="painel-edit-btn" id="edit-btn-ensaio" onclick="toggleEditMode('ensaio')">✏️ Editar Painel</button>
+        </div>
+        <div class="edit-mode-bar hidden" id="editbar-ensaio">
+          <span>Modo de edição ativo</span>
+          <div><button class="edit-save-btn" onclick="saveEditMode('ensaio')">Salvar</button><button class="edit-cancel-btn" onclick="cancelEditMode('ensaio')">Cancelar</button></div>
+        </div>
+        <div class="painel-grid cols-2">
+          <div class="painel-block"><div class="painel-block-title">Câmeras + Blend</div>
+            <div class="painel-cam-row" style="margin-bottom:10px">
+              <div class="painel-cam-btn on-air"><div class="painel-cam-label">CAM 1</div></div>
+              <div class="painel-cam-btn"><div class="painel-cam-label">CAM 2</div></div>
+              <div class="painel-cam-btn"><div class="painel-cam-label">CAM 3</div></div>
+            </div>
+            <div class="field-inline"><label>Blend Time (s)</label><input type="number" value="1.0" min="0" max="5" step="0.1"></div>
+          </div>
+          <div class="painel-block"><div class="painel-block-title">Animações Ensaio</div>
+            <div class="anim-btn-grid">
+              <button class="anim-btn" onclick="addLog('▶ Teste Entrada')">▶ Teste Entrada</button>
+              <button class="anim-btn" onclick="addLog('▶ Teste Vinheta')">▶ Teste Vinheta</button>
+              <button class="anim-btn stop" onclick="addLog('⏹ Reset')">⏹ Reset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INPUT -->
+      <div id="mod-input" style="display:none">
+        <div class="module-header"><div><div class="module-title">Input de Vídeo</div><div class="module-subtitle">VPCtrl_MediaProfile</div></div></div>
+        <div class="card"><div class="card-title">Fonte</div>
+          <div class="source-grid">
+            <div class="source-btn active"><div class="source-icon">🎥</div>AJA</div>
+            <div class="source-btn"><div class="source-icon">⬛</div>Blackmagic</div>
+            <div class="source-btn"><div class="source-icon">🌐</div>NDI</div>
+            <div class="source-btn"><div class="source-icon">📁</div>File</div>
+            <div class="source-btn"><div class="source-icon">🖼️</div>Image</div>
+          </div>
+          <div class="config-grid">
+            <div class="field-inline"><label>Resolução</label><select><option>1920×1080</option><option>3840×2160</option></select></div>
+            <div class="field-inline"><label>Frame Rate</label><select><option>29.97 fps</option><option>25 fps</option><option>60 fps</option></select></div>
+            <div class="field-inline"><label>Aplicar</label><button class="btn primary" style="width:100%">Apply Profile</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GENÉRICOS -->
+      <div id="mod-paths" style="display:none"><div class="module-header"><div><div class="module-title">Camera Paths</div></div></div><div class="empty-module"><div class="empty-icon">📍</div><span>Próxima iteração</span></div></div>
+      <div id="mod-output" style="display:none"><div class="module-header"><div><div class="module-title">Output de Vídeo</div></div></div><div class="empty-module"><div class="empty-icon">📤</div><span>Próxima iteração</span></div></div>
+      <div id="mod-cena" style="display:none"><div class="module-header"><div><div class="module-title">Cena 3D</div></div></div><div class="empty-module"><div class="empty-icon">🏔️</div><span>Próxima iteração</span></div></div>
+      <div id="mod-audio" style="display:none"><div class="module-header"><div><div class="module-title">Áudio</div></div></div><div class="empty-module"><div class="empty-icon">🔊</div><span>Próxima iteração</span></div></div>
+      <div id="mod-presets-mod" style="display:none"><div class="module-header"><div><div class="module-title">Presets de Cena</div></div></div><div class="empty-module"><div class="empty-icon">💾</div><span>Próxima iteração</span></div></div>
+      <div id="mod-tally" style="display:none"><div class="module-header"><div><div class="module-title">Tally</div></div></div><div class="empty-module"><div class="empty-icon">🔴</div><span>Próxima iteração</span></div></div>
+
+    </div><!-- /center -->
+
+    <!-- ── MONITOR (normal) ── -->
+    <div class="monitor-col" id="monitor-col">
+      <div class="ndi-block">
+        <div class="ndi-hdr"><span class="ndi-title">Preview NDI</span><button class="ndi-exp" onclick="toggleFullscreen()">⛶</button></div>
+        <div id="ndi-state-ok"><div class="ndi-screen"><div class="ndi-sim"><div class="ndi-rec"><div class="ndi-rec-dot"></div>AO VIVO</div><div class="ndi-fps-badge" id="ndi-fps-badge">59.9 fps</div><div class="ndi-lbl">VPCtrl_Output</div></div></div></div>
+        <div id="ndi-state-no-plugin" style="display:none"><div class="ndi-warn-block"><div class="ndi-warn warn"><span class="ndi-warn-ico">⚠️</span><div class="ndi-warn-txt"><strong>Plugin NDI ausente no UE5</strong><span>Edit → Plugins → "NDI IO Plugin" → Enable</span></div></div></div></div>
+        <div id="ndi-state-no-runtime" style="display:none"><div class="ndi-warn-block"><div class="ndi-warn err"><span class="ndi-warn-ico">🔴</span><div class="ndi-warn-txt"><strong>NDI Runtime não instalado</strong><span>Necessário nesta máquina. <a>Como instalar ›</a></span></div></div></div></div>
+      </div>
+      <div class="monitor-section">
+        <div class="monitor-title">Performance UE5</div>
+        <div class="metric-row"><span class="metric-label">FPS</span><span class="metric-val good" id="fps-val">59.9</span></div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:100%"></div></div>
+        <div class="metric-row" style="margin-top:8px"><span class="metric-label">GPU</span><span class="metric-val warn" id="gpu-val">71%</span></div>
+        <div class="bar-wrap"><div class="bar-fill warn" id="gpu-bar" style="width:71%"></div></div>
+        <div class="metric-row" style="margin-top:8px"><span class="metric-label">VRAM</span><span class="metric-val good">6.2 GB</span></div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:52%"></div></div>
+        <div class="metric-row" style="margin-top:8px"><span class="metric-label">CPU</span><span class="metric-val good">28%</span></div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:28%"></div></div>
+      </div>
+      <div class="monitor-section">
+        <div class="monitor-title">Status</div>
+        <div class="metric-row"><span class="metric-label">Entrada</span><span class="metric-val good">AJA ✓</span></div>
+        <div class="metric-row" style="margin-top:4px"><span class="metric-label">NDI Out</span><span class="metric-val good">OK ✓</span></div>
+        <div class="metric-row" style="margin-top:4px"><span class="metric-label">Preset</span><span class="metric-val" id="monitor-preset">Preset A</span></div>
+      </div>
+      <div class="monitor-title" style="padding:10px 14px 0">LOG</div>
+      <div class="log-area" id="log-area">
+        <div class="log-item"><span class="log-time">14:32:01</span><span class="log-msg ok">UE5 conectado</span></div>
+        <div class="log-item"><span class="log-time">14:32:02</span><span class="log-msg ok">Projeto: ProjetoCasamento</span></div>
+        <div class="log-item"><span class="log-time">14:32:03</span><span class="log-msg ok">NDI Runtime OK</span></div>
+        <div class="log-item"><span class="log-time">14:32:04</span><span class="log-msg ok">4 grupos RC descobertos</span></div>
+        <div class="log-item"><span class="log-time">14:32:05</span><span class="log-msg">Cam1 ativa</span></div>
+        <div class="log-item"><span class="log-time">14:38:02</span><span class="log-msg warn">GPU 71% — atenção</span></div>
+      </div>
+    </div>
+
+    <!-- ── PICKER (edit mode) ── -->
+    <div class="picker-col hidden" id="picker-col">
+      <div class="picker-hdr">
+        <div class="picker-title">Adicionar Controles</div>
+        <div class="picker-sub">Clique em + para adicionar ao painel</div>
+      </div>
+      <div class="picker-body">
+        <div class="picker-group-title">SWITCHER</div>
+        <div class="picker-item" id="pick-cams" onclick="addToPainel('cams')">
+          <div class="picker-item-left"><div class="picker-item-name">Câmeras</div><div class="picker-item-type">switcher · 3 botões</div></div>
+          <div class="picker-add-btn">+</div>
+        </div>
+        <div class="picker-group-title">PAINEL LED FUNDO</div>
+        <div class="picker-item" onclick="addToPainel('led-int')">
+          <div class="picker-item-left"><div class="picker-item-name">Intensidade LED</div><div class="picker-item-type">float · slider</div></div>
+          <div class="picker-add-btn">+</div>
+        </div>
+        <div class="picker-item" onclick="addToPainel('led-cor')">
+          <div class="picker-item-left"><div class="picker-item-name">Cor LED</div><div class="picker-item-type">FLinearColor · picker</div></div>
+          <div class="picker-add-btn">+</div>
+        </div>
+        <div class="picker-item" onclick="addToPainel('led-pad')">
+          <div class="picker-item-left"><div class="picker-item-name">Padrão LED</div><div class="picker-item-type">enum · dropdown</div></div>
+          <div class="picker-add-btn">+</div>
+        </div>
+        <div class="picker-group-title">ILUMINAÇÃO CENA</div>
+        <div class="picker-item" onclick="addToPainel('luz-int')">
+          <div class="picker-item-left"><div class="picker-item-name">Luz Principal</div><div class="picker-item-type">float · slider</div></div>
+          <div class="picker-add-btn">+</div>
+        </div>
+        <div class="picker-item" onclick="addToPainel('luz-temp')">
+          <div class="picker-item-left"><div class="picker-item-name">Temperatura</div><div class="picker-item-type">float · slider</div></div>
+          <div class="picker-add-btn">+</div>
+        </div>
+        <div class="picker-item" onclick="addToPainel('luz-sombras')">
+          <div class="picker-item-left"><div class="picker-item-name">Sombras</div><div class="picker-item-type">bool · toggle</div></div>
+          <div class="picker-add-btn">+</div>
+        </div>
+        <div class="picker-group-title">ANIMAÇÕES</div>
+        <div class="picker-item" onclick="addToPainel('anim-all')">
+          <div class="picker-item-left"><div class="picker-item-name">Botões de Animação</div><div class="picker-item-type">Custom Events · botões</div></div>
+          <div class="picker-add-btn">+</div>
+        </div>
+        <div class="picker-group-title">MATERIAL PAREDE</div>
+        <div class="picker-item" onclick="addToPainel('mat-rough')">
+          <div class="picker-item-left"><div class="picker-item-name">Roughness</div><div class="picker-item-type">float · slider</div></div>
+          <div class="picker-add-btn">+</div>
+        </div>
+        <div class="picker-item" onclick="addToPainel('mat-cor')">
+          <div class="picker-item-left"><div class="picker-item-name">Base Color</div><div class="picker-item-type">FLinearColor · picker</div></div>
+          <div class="picker-add-btn">+</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODAL TROCA PROJETO ══ -->
+<div class="modal-overlay hidden" id="modal-proj-change">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ Projeto alterado no UE5</div>
+    <div class="modal-body">O UE5 abriu um projeto diferente. Carregar os presets e painéis deste projeto?</div>
+    <div class="modal-proj-change">
+      <div><div style="font-size:11px;color:var(--text-muted)">Anterior</div><div style="font-size:13px;color:var(--text-muted);margin-top:2px">ProjetoCasamento</div></div>
+      <div style="font-size:18px;color:var(--text-muted)">→</div>
+      <div><div style="font-size:11px;color:var(--text-muted)">Novo projeto</div><div style="font-size:14px;font-weight:600;color:var(--accent);margin-top:2px">ProjetoTV_2026</div></div>
+    </div>
+    <div class="modal-btn-row">
+      <button class="btn primary" onclick="confirmProjChange()">Carregar ProjetoTV_2026</button>
+      <button class="btn" onclick="closeModal('modal-proj-change')">Manter Atual</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL NOVO PAINEL ══ -->
+<div class="modal-overlay hidden" id="modal-new-painel">
+  <div class="modal-box">
+    <div class="modal-title">Novo Painel</div>
+    <div class="field-group"><label>NOME DO PAINEL</label><input class="modal-input" id="new-painel-name" type="text" placeholder="Ex: Show Corporativo" value=""></div>
+    <div class="field-group">
+      <label>ÍCONE</label>
+      <div class="icon-grid" id="icon-grid">
+        <div class="icon-opt selected" onclick="selectIcon(this)">⭐</div>
+        <div class="icon-opt" onclick="selectIcon(this)">🎬</div>
+        <div class="icon-opt" onclick="selectIcon(this)">🎛️</div>
+        <div class="icon-opt" onclick="selectIcon(this)">🔴</div>
+        <div class="icon-opt" onclick="selectIcon(this)">🌙</div>
+        <div class="icon-opt" onclick="selectIcon(this)">🔧</div>
+        <div class="icon-opt" onclick="selectIcon(this)">💡</div>
+        <div class="icon-opt" onclick="selectIcon(this)">🎵</div>
+        <div class="icon-opt" onclick="selectIcon(this)">📺</div>
+        <div class="icon-opt" onclick="selectIcon(this)">🏆</div>
+        <div class="icon-opt" onclick="selectIcon(this)">🎯</div>
+        <div class="icon-opt" onclick="selectIcon(this)">🚀</div>
+      </div>
+    </div>
+    <div class="modal-btn-row">
+      <button class="btn primary" onclick="createPainel()">Criar e Editar</button>
+      <button class="btn" onclick="closeModal('modal-new-painel')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NDI FULLSCREEN ══ -->
+<div class="ndi-fullscreen hidden" id="ndi-fullscreen">
+  <div class="ndi-fs-bar"><span>PREVIEW NDI — VPCtrl_Output</span><button onclick="toggleFullscreen()">Fechar ✕</button></div>
+  <div class="ndi-fs-content"><div class="ndi-fs-video"><div class="ndi-fs-rec"><div class="ndi-rec-dot"></div>AO VIVO</div><div class="ndi-fs-fps">59.9 fps</div><div class="ndi-fs-lbl">VPCtrl_Output · ProjetoCasamento</div></div></div>
+</div>
+
+<div class="wf-note">WIREFRAME — não funcional</div>
+
+<script>
+let tallyOn=true, activeCam=1, fsOpen=false, editingPainel=null, selectedIcon='⭐';
+
+const allModules=['input','chroma','switcher','controles','paths','output','cena','audio','presets-mod','tally','painel-show','painel-noturno','painel-ensaio'];
+
+// ── CONEXÃO ──
+function showConnect(){document.getElementById('screen-connect').classList.remove('hidden');document.getElementById('screen-main').classList.add('hidden');resetChecklist();}
+function showMain(){document.getElementById('screen-connect').classList.add('hidden');document.getElementById('screen-main').classList.remove('hidden');}
+function resetChecklist(){document.getElementById('checklist').style.display='none';document.getElementById('proj-detected-block').classList.add('hidden');document.getElementById('recentes-block').style.display='';const btn=document.getElementById('btn-conectar');btn.disabled=false;btn.textContent='CONECTAR';btn.onclick=simulateConnect;['chk-ue5','chk-proj','chk-runtime','chk-plugin'].forEach(id=>{const e=document.getElementById(id);e.style.display='none';e.querySelector('.chk-icon').textContent='⏳';e.querySelector('.chk-txt').className='chk-txt';});}
+function simulateConnect(){simulateConnectWith('192.168.1.10','ProjetoCasamento');}
+function simulateConnectWith(ip,proj){
+  const btn=document.getElementById('btn-conectar');
+  btn.disabled=true;btn.textContent='CONECTANDO...';
+  document.getElementById('recentes-block').style.display='none';
+  document.getElementById('checklist').style.display='';
+  document.getElementById('proj-detected-block').classList.add('hidden');
+  const steps=[{id:'chk-ue5',delay:600,label:'UE5 encontrado'},{id:'chk-proj',delay:1000,label:'Projeto: '+proj},{id:'chk-runtime',delay:1500,label:'NDI Runtime OK'},{id:'chk-plugin',delay:2000,label:'Plugin NDI OK · 4 grupos RC'}];
+  steps.forEach(s=>{document.getElementById(s.id).style.display='';setTimeout(()=>{document.getElementById(s.id).querySelector('.chk-icon').textContent='✅';document.getElementById(s.id).querySelector('.chk-txt').textContent=s.label;document.getElementById(s.id).querySelector('.chk-txt').className='chk-txt ok';},s.delay);});
+  setTimeout(()=>{document.getElementById('proj-detected-name').textContent=proj;document.getElementById('proj-detected-block').classList.remove('hidden');btn.disabled=false;btn.textContent='ABRIR PAINEL →';btn.onclick=()=>{document.getElementById('status-proj-name').textContent=proj;addLog('Projeto "'+proj+'" carregado');showMain();btn.onclick=simulateConnect;};},2400);
+}
+
+// ── MÓDULOS ──
+function setModule(mod){
+  allModules.forEach(m=>{
+    const el=document.getElementById('mod-'+m);
+    if(el) el.style.display=(m===mod?'':'none');
+    const nav=document.getElementById('nav-'+m);
+    if(nav) nav.classList.toggle('active',m===mod);
+  });
+  if(editingPainel && !mod.startsWith('painel-')){cancelEditMode(editingPainel);}
+}
+
+// ── TALLY / CAM ──
+function toggleTally(){tallyOn=!tallyOn;const b=document.getElementById('tally-block');b.classList.toggle('off',!tallyOn);document.getElementById('tally-text').textContent=tallyOn?'CAM '+activeCam+' NO AR':'NENHUMA CAM';}
+function switchCam(){activeCam=(activeCam%3)+1;selectCam(activeCam);}
+function selectCam(n){activeCam=n;for(let i=1;i<=3;i++){document.getElementById('cam-btn-'+i).classList.toggle('on-air',i===n);document.getElementById('badge-'+i).classList.toggle('hidden',i!==n);}if(tallyOn)document.getElementById('tally-text').textContent='CAM '+n+' NO AR';syncPainelCam(n);addLog('CAM '+n+' selecionada');}
+function syncPainelCam(n){for(let i=1;i<=3;i++){const b=document.getElementById('pcam-'+i);if(b){b.classList.toggle('on-air',i===n);b.querySelector('.painel-cam-sub').textContent=i===n?'no ar':'—';}}}
+
+// ── PRESETS ──
+function setPreset(el,name){document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active-preset'));el.classList.add('active-preset');document.getElementById('active-preset-name').textContent=name;document.getElementById('monitor-preset').textContent=name;addLog('Preset "'+name+'" carregado');}
+
+// ── NDI ──
+function setNdiState(s){document.getElementById('ndi-state-ok').style.display=s==='ok'?'':'none';document.getElementById('ndi-state-no-plugin').style.display=s==='no-plugin'?'':'none';document.getElementById('ndi-state-no-runtime').style.display=s==='no-runtime'?'':'none';addLog(s==='ok'?'NDI Preview conectado':s==='no-plugin'?'Plugin NDI ausente':'NDI Runtime não instalado',s==='ok'?'ok':'err');}
+function toggleFullscreen(){fsOpen=!fsOpen;document.getElementById('ndi-fullscreen').classList.toggle('hidden',!fsOpen);}
+
+// ── CONTROLES — ACCORDION ──
+function toggleGroup(hdr){const body=hdr.nextElementSibling;const arrow=hdr.querySelector('.ctrl-group-arrow');body.classList.toggle('hidden');arrow.classList.toggle('open',!body.classList.contains('hidden'));}
+
+// ── EDIT MODE ──
+function toggleEditMode(painelId){
+  if(editingPainel===painelId){cancelEditMode(painelId);return;}
+  if(editingPainel) cancelEditMode(editingPainel);
+  editingPainel=painelId;
+  document.getElementById('editbar-'+painelId).classList.remove('hidden');
+  document.getElementById('edit-btn-'+painelId).classList.add('active');
+  document.getElementById('monitor-col').classList.add('hidden');
+  document.getElementById('picker-col').classList.remove('hidden');
+  document.querySelectorAll('#mod-painel-'+painelId+' .painel-block').forEach(b=>b.classList.add('edit-mode'));
+  addLog('Editando painel: '+painelId);
+}
+function saveEditMode(painelId){editingPainel=null;document.getElementById('editbar-'+painelId).classList.add('hidden');document.getElementById('edit-btn-'+painelId).classList.remove('active');document.getElementById('monitor-col').classList.remove('hidden');document.getElementById('picker-col').classList.add('hidden');document.querySelectorAll('#mod-painel-'+painelId+' .painel-block').forEach(b=>b.classList.remove('edit-mode'));addLog('Painel salvo: '+painelId);}
+function cancelEditMode(painelId){if(!painelId)return;editingPainel=null;document.getElementById('editbar-'+painelId).classList.add('hidden');const eb=document.getElementById('edit-btn-'+painelId);if(eb)eb.classList.remove('active');document.getElementById('monitor-col').classList.remove('hidden');document.getElementById('picker-col').classList.add('hidden');document.querySelectorAll('#mod-painel-'+painelId+' .painel-block').forEach(b=>b.classList.remove('edit-mode'));}
+
+function addToPainel(ctrl){addLog('Controle "'+ctrl+'" adicionado ao painel');}
+function removeBlock(blockId,painelId){const b=document.getElementById(blockId);if(b){b.style.opacity='0.3';b.style.pointerEvents='none';addLog('Bloco removido do painel');}}
+
+// ── MODAL NOVO PAINEL ──
+function showNewPainelModal(){document.getElementById('new-painel-name').value='';document.getElementById('modal-new-painel').classList.remove('hidden');}
+function createPainel(){const name=document.getElementById('new-painel-name').value||'Novo Painel';closeModal('modal-new-painel');addLog('Painel "'+name+'" criado');}
+function selectIcon(el){document.querySelectorAll('.icon-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');selectedIcon=el.textContent;}
+
+// ── MODAL PROJ ──
+function showProjectChange(){document.getElementById('modal-proj-change').classList.remove('hidden');}
+function confirmProjChange(){document.getElementById('status-proj-name').textContent='ProjetoTV_2026';addLog('Projeto → ProjetoTV_2026');closeModal('modal-proj-change');}
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+
+// ── LOG ──
+function addLog(msg,cls){const a=document.getElementById('log-area');const t=new Date().toTimeString().slice(0,8);const i=document.createElement('div');i.className='log-item';i.innerHTML='<span class="log-time">'+t+'</span><span class="log-msg '+(cls||'')+'">'+msg+'</span>';a.appendChild(i);a.scrollTop=a.scrollHeight;}
+
+// ── MÉTRICAS ──
+setInterval(()=>{const fps=(58+Math.random()*2).toFixed(1);const gpu=Math.round(65+Math.random()*15);document.getElementById('fps-val').textContent=fps;document.getElementById('gpu-val').textContent=gpu+'%';document.getElementById('gpu-bar').style.width=gpu+'%';document.getElementById('ndi-fps-badge').textContent=fps+' fps';},2000);
+
+showConnect();
+</script>
+</body>
+</html>
