@@ -1,0 +1,30 @@
+[Unit]
+Description=VP CTRL License Server
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/vp-license
+Environment="PATH=/var/www/vp-license/venv/bin"
+ExecStart=/var/www/vp-license/venv/bin/uvicorn main:app \
+          --host 127.0.0.1 \
+          --port 8010 \
+          --workers 2 \
+          --log-level info
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vp-license
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/www/vp-license
+
+[Install]
+WantedBy=multi-user.target

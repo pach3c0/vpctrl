@@ -1,0 +1,403 @@
+# PRD — VP Control App
+## Virtual Production Camera Control System
+**Versão:** 1.0  
+**Tecnologia:** Python 3.11+ / PyQt6 / WebSocket  
+**Plataforma:** Windows 10/11 (mesmo PC que roda UE5)
+
+---
+
+## 1. Visão Geral
+
+App desktop para controle de sistema de câmera virtual no Unreal Engine 5, substituindo o painel de controle do Aximmetry. Comunicação via WebSocket com a Remote Control API do UE5 para latência mínima (1-5ms).
+
+O sistema UE5 já está implementado em Blueprint (`BP_CameraSwitcher12`) com todas as variáveis e eventos expostos via Remote Control Preset.
+
+---
+
+## 2. Arquitetura Técnica
+
+### 2.1 Stack
+- **Interface:** PyQt6 (widgets nativos Windows)
+- **Comunicação:** WebSocket (`websockets` library) — conexão persistente
+- **Protocolo:** UE5 Remote Control WebSocket API (porta 30020)
+- **Threading:** QThread para WebSocket (não bloquear UI)
+
+### 2.2 Comunicação com UE5
+
+**Endpoint WebSocket:**
+```
+ws://127.0.0.1:30020
+```
+
+**Formato de mensagem — Setar variável:**
+```json
+{
+  "MessageName": "preset.setvalue",
+  "Id": "uuid-aqui",
+  "Parameters": {
+    "PresetName": "VPControlPreset",
+    "PropertyLabel": "GravarA",
+    "PropertyValue": true
+  }
+}
+```
+
+**Formato de mensagem — Chamar evento/função:**
+```json
+{
+  "MessageName": "object.callfunction",
+  "Id": "uuid-aqui",
+  "Parameters": {
+    "ObjectPath": "/Game/VprodProject/PachecoVP/Cameras/BP_CameraSwitcher12",
+    "FunctionName": "TriggerPath1",
+    "Parameters": {}
+  }
+}
+```
+
+**Formato de mensagem — Ler variável:**
+```json
+{
+  "MessageName": "preset.getvalue",
+  "Id": "uuid-aqui",
+  "Parameters": {
+    "PresetName": "VPControlPreset",
+    "PropertyLabel": "ActivePath"
+  }
+}
+```
+
+### 2.3 Variáveis e Eventos UE5 (Remote Control Preset)
+
+| Label | Tipo | Descrição |
+|-------|------|-----------|
+| `ActivePath` | Integer | Path ativo (0-7) |
+| `GravarA` | Boolean | Grava posição A do path ativo |
+| `GravarB` | Boolean | Grava posição B do path ativo |
+| `FocalLengthOverride` | Float | Focal length para gravação |
+| `FocusDistanceOverride` | Float | Focus distance para gravação |
+| `Duration` | Float | Duração da animação em segundos |
+| `IsMoving` | Boolean | Read-only: câmera em movimento |
+
+**Eventos (Custom Events no BP):**
+| Evento | Descrição |
+|--------|-----------|
+| `TriggerPath1` | Dispara animação Path 1 (FlipFlop) |
+| `TriggerPath2` | Dispara animação Path 2 (FlipFlop) |
+
+---
+
+## 3. Interface do Usuário
+
+### 3.1 Layout Geral
+
+Janela principal fixa: **800x600px**, sem redimensionamento.  
+Tema escuro (estilo broadcast — fundo #1a1a1a, texto branco).  
+Fonte: **Segoe UI** ou **Roboto**, tamanho mínimo 12pt.
+
+```
+┌─────────────────────────────────────────────────────┐
+│  VP CONTROL v1.0          [●] Conectado ao UE5       │
+├─────────────────────────────────────────────────────┤
+│                                                       │
+│  CÂMERA 1                                            │
+│  ┌─────────────────────────────────────────────────┐ │
+│  │  PATH 1  │  PATH 2  │  PATH 3  │  PATH 4        │ │
+│  │  PATH 5  │  PATH 6  │  PATH 7  │  PATH 8        │ │
+│  └─────────────────────────────────────────────────┘ │
+│                                                       │
+│  PATH ATIVO: [1 ▼]   DURAÇÃO: [2.0  s]              │
+│                                                       │
+│  GRAVAR POSIÇÕES                                      │
+│  ┌──────────────────┐  ┌──────────────────┐          │
+│  │   GRAVAR PONTO A  │  │   GRAVAR PONTO B  │          │
+│  └──────────────────┘  └──────────────────┘          │
+│                                                       │
+│  LENTE                                                │
+│  Focal Length:  [35.0  mm]  [◄──────────►]          │
+│  Focus Distance:[100.0 cm]  [◄──────────►]          │
+│                                                       │
+│  STATUS: ● Parado                                     │
+└─────────────────────────────────────────────────────┘
+```
+
+### 3.2 Barra de Status (topo)
+
+- **Indicador de conexão:** círculo verde (conectado) / vermelho (desconectado)
+- **Texto:** "Conectado ao UE5" ou "Reconectando..."
+- **Tentativa de reconexão automática** a cada 3 segundos quando desconectado
+
+### 3.3 Seção CÂMERA
+
+**Fase 1 (atual):** Apenas CÂMERA 1  
+**Fase futura:** 3 câmeras — adicionar tabs ou seções expandíveis
+
+### 3.4 Grid de Paths (8 botões)
+
+- 8 botões dispostos em 2 linhas de 4
+- Tamanho: **150x60px** cada
+- Estado NORMAL: fundo #2d2d2d, texto branco, borda #444
+- Estado ATIVO (animando): fundo #e67e00 (laranja), texto branco — pisca enquanto `IsMoving == true`
+- Estado SELECIONADO (path ativo para gravação): borda azul #0078d4 espessa
+- **Click:** dispara `TriggerPath{N}` via WebSocket
+- **Atalho de teclado:** teclas 1-8 disparam os paths correspondentes
+
+### 3.5 Controles de Path
+
+**Dropdown "PATH ATIVO":**
+- Opções: 1, 2, 3, 4, 5, 6, 7, 8
+- Ao mudar: envia `ActivePath = valor - 1` (0-indexed) via WebSocket
+- Sincroniza com qual botão está com borda azul
+
+**Campo "DURAÇÃO":**
+- Input numérico float, mínimo 0.1, máximo 60.0
+- Default: 2.0
+- Ao confirmar (Enter ou perda de foco): envia `Duration = valor` via WebSocket
+
+### 3.6 Botões de Gravação
+
+**GRAVAR PONTO A:**
+- Tamanho: **180x50px**
+- Cor: #1a6b1a (verde escuro)
+- Hover: #228b22
+- Click:
+  1. Envia `GravarA = true`
+  2. Aguarda 200ms
+  3. Envia `GravarA = false`
+- Feedback visual: flash branco por 200ms
+
+**GRAVAR PONTO B:**
+- Idêntico ao A mas cor #1a1a6b (azul escuro)
+- Click:
+  1. Envia `GravarB = true`
+  2. Aguarda 200ms
+  3. Envia `GravarB = false`
+
+### 3.7 Controles de Lente
+
+**Focal Length:**
+- Label + Input numérico (float, 10.0 a 300.0, step 1.0) + Slider horizontal
+- Input e slider sincronizados bidirecionalmente
+- Ao mudar: envia `FocalLengthOverride = valor` via WebSocket
+- Default: 35.0
+
+**Focus Distance:**
+- Label + Input numérico (float, 10.0 a 100000.0, step 10.0) + Slider horizontal
+- Slider em escala logarítmica para melhor usabilidade
+- Ao mudar: envia `FocusDistanceOverride = valor` via WebSocket
+- Default: 1000.0
+
+**Debounce:** enviar WebSocket só após 50ms sem mudança (evitar flood de mensagens enquanto arrasta slider)
+
+### 3.8 Barra de Status (rodapé)
+
+- **● Parado** (cinza) quando `IsMoving == false`
+- **● Animando PATH 1** (laranja) quando `IsMoving == true`
+- Polling do `IsMoving` a cada 100ms via WebSocket
+
+---
+
+## 4. Estrutura do Projeto
+
+```
+vp_control/
+├── main.py                  # Entry point
+├── requirements.txt         # PyQt6, websockets, asyncio
+├── core/
+│   ├── __init__.py
+│   ├── websocket_client.py  # Conexão WebSocket persistente com UE5
+│   └── ue5_api.py           # Wrapper de mensagens Remote Control
+├── ui/
+│   ├── __init__.py
+│   ├── main_window.py       # Janela principal
+│   ├── camera_panel.py      # Painel da câmera com paths
+│   ├── lens_panel.py        # Controles de lente
+│   └── styles.py            # Tema escuro (QSS stylesheet)
+└── config/
+    └── settings.py          # IP, porta, nome do preset UE5
+```
+
+---
+
+## 5. Módulo WebSocket (core/websocket_client.py)
+
+### Requisitos:
+- Conexão persistente — não reconectar a cada mensagem
+- Reconexão automática com backoff (3s, 6s, 12s)
+- Fila de mensagens para quando desconectado
+- Callbacks para: `on_connected`, `on_disconnected`, `on_message`
+- Rodar em QThread separado (não bloquear UI)
+- Usar `asyncio` + `websockets` library
+
+### Interface pública:
+```python
+class WebSocketClient(QThread):
+    connected = pyqtSignal()
+    disconnected = pyqtSignal()
+    message_received = pyqtSignal(dict)
+    
+    def send(self, message: dict) -> None
+    def is_connected(self) -> bool
+```
+
+---
+
+## 6. Módulo UE5 API (core/ue5_api.py)
+
+Wrapper que encapsula os formatos de mensagem do Remote Control:
+
+```python
+class UE5API:
+    def set_variable(self, label: str, value) -> dict
+    def get_variable(self, label: str) -> dict
+    def call_function(self, function_name: str, params: dict = {}) -> dict
+    
+    # Métodos específicos do VP Control:
+    def trigger_path(self, path_index: int) -> dict  # 1-8
+    def set_active_path(self, path_index: int) -> dict  # 0-7
+    def gravar_a(self) -> None  # set true + delay + set false
+    def gravar_b(self) -> None
+    def set_focal_length(self, value: float) -> dict
+    def set_focus_distance(self, value: float) -> dict
+    def set_duration(self, value: float) -> dict
+    def get_is_moving(self) -> dict
+```
+
+---
+
+## 7. Configuração (config/settings.py)
+
+```python
+UE5_HOST = "127.0.0.1"
+UE5_PORT = 30020
+REMOTE_CONTROL_PRESET = "VPControlPreset"
+RECONNECT_INTERVAL = 3  # segundos
+POLLING_INTERVAL = 100  # ms para IsMoving
+DEBOUNCE_INTERVAL = 50  # ms para sliders
+GRAVAR_PULSE_DURATION = 200  # ms
+```
+
+---
+
+## 8. Tema Visual (ui/styles.py)
+
+Stylesheet QSS completo com tema broadcast escuro:
+
+```python
+DARK_THEME = """
+QMainWindow, QWidget {
+    background-color: #1a1a1a;
+    color: #ffffff;
+    font-family: "Segoe UI";
+    font-size: 13px;
+}
+QPushButton {
+    background-color: #2d2d2d;
+    color: #ffffff;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 13px;
+}
+QPushButton:hover { background-color: #3d3d3d; }
+QPushButton:pressed { background-color: #1a1a1a; }
+QPushButton#btn_path_active {
+    background-color: #e67e00;
+    border: 2px solid #ff9900;
+}
+QPushButton#btn_path_selected {
+    border: 2px solid #0078d4;
+}
+QPushButton#btn_gravar_a {
+    background-color: #1a6b1a;
+    font-size: 14px;
+    font-weight: bold;
+}
+QPushButton#btn_gravar_b {
+    background-color: #1a1a6b;
+    font-size: 14px;
+    font-weight: bold;
+}
+QSlider::groove:horizontal {
+    height: 6px;
+    background: #444444;
+    border-radius: 3px;
+}
+QSlider::handle:horizontal {
+    background: #0078d4;
+    width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    margin: -5px 0;
+}
+QDoubleSpinBox, QSpinBox {
+    background-color: #2d2d2d;
+    color: #ffffff;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 4px;
+    min-width: 80px;
+}
+QComboBox {
+    background-color: #2d2d2d;
+    color: #ffffff;
+    border: 1px solid #444444;
+    border-radius: 4px;
+    padding: 4px 8px;
+    min-width: 80px;
+}
+QLabel#status_connected { color: #00cc44; }
+QLabel#status_disconnected { color: #cc4444; }
+QLabel#status_moving { color: #e67e00; }
+QLabel#status_stopped { color: #888888; }
+"""
+```
+
+---
+
+## 9. requirements.txt
+
+```
+PyQt6>=6.4.0
+websockets>=11.0
+asyncio
+qasync>=0.23.0
+```
+
+---
+
+## 10. Fases de Desenvolvimento
+
+### Fase 1 — MVP (implementar agora)
+- [x] Conexão WebSocket com reconexão automática
+- [x] 8 botões de path para Câmera 1
+- [x] Botões Gravar A e Gravar B
+- [x] Controles de Focal Length e Focus Distance
+- [x] Campo de Duração
+- [x] Indicador de conexão e status de movimento
+- [x] Tema escuro broadcast
+- [x] Atalhos de teclado 1-8
+
+### Fase 2 — Expansão futura
+- [ ] Suporte a 3 câmeras (tabs ou seções)
+- [ ] Salvar/carregar presets de configuração
+- [ ] Log de ações
+- [ ] Configuração de IP/porta via UI
+
+---
+
+## 11. Notas Importantes para Implementação
+
+1. **Remote Control Preset no UE5** deve ter as variáveis expostas com os mesmos labels definidos neste PRD. Se os labels diferirem, ajustar em `settings.py`.
+
+2. **O WebSocket do UE5** retorna respostas com o mesmo `Id` enviado — usar UUIDs únicos por mensagem para correlacionar respostas.
+
+3. **GravarA e GravarB** funcionam como pulso: setar `true`, aguardar 200ms, setar `false`. O Construction Script do UE5 só roda quando o valor muda — precisa do ciclo true→false.
+
+4. **IsMoving** é read-only no BP — polling periódico via `preset.getvalue`.
+
+5. **Paths disparam via Custom Event** no BP (`TriggerPath1`, `TriggerPath2`, etc.) — usar `object.callfunction` não `preset.setvalue`.
+
+6. **Não usar HTTP REST** — apenas WebSocket para manter latência abaixo de 5ms.
+
+7. **qasync** é necessário para integrar `asyncio` (usado pelo `websockets`) com o event loop do PyQt6.

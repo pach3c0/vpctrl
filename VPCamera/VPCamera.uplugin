@@ -1,0 +1,26 @@
+{
+    "FileVersion": 3,
+    "Version": 2,
+    "VersionName": "3.0",
+    "FriendlyName": "VP CTRL",
+    "Description": "Virtual Production Controller — sistema profissional de controle de camera para producao virtual. Requer VP CTRL Desktop App.",
+    "Category": "Virtual Production",
+    "CreatedBy": "Ricardo Pacheco",
+    "CreatedByURL": "",
+    "DocsURL": "",
+    "MarketplaceURL": "",
+    "SupportURL": "",
+    "EngineVersion": "5.7.0",
+    "CanContainContent": true,
+    "IsBetaVersion": false,
+    "IsExperimentalVersion": false,
+    "Installed": false,
+    "Modules": [],
+    "Plugins": [
+        { "Name": "OSC",                "Enabled": true },
+        { "Name": "PythonScriptPlugin", "Enabled": true },
+        { "Name": "RemoteControl",      "Enabled": true },
+        { "Name": "WebRemoteControl",   "Enabled": true },
+        { "Name": "EnhancedInput",      "Enabled": true }
+    ]
+}
